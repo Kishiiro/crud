@@ -9,28 +9,46 @@ const Role = require('_helpers/role')
 // routes
 router.post('/authenticate', authenticateSchema, authenticate);
 router.post('/register', createSchema, create);
-router.get('/', authorize(), getAll);    
-router.get('/:id', authorize(), getById);
-router.put('/:id', authorize(), updateSchema, update);
-router.delete('/:id', authorize(), _delete);
+router.post("/logout", logout);
+router.get('/', authorize, getAll);    
+router.get('/:id', authorize, getById);
+router.put('/:id', authorize, updateSchema, update);
+router.delete('/:id', authorize, _delete);
 
 module.exports = router;
 
 // route functions
 function authenticateSchema(req, res, next) {
     const schema = Joi.object({
-        username: Joi.string().required(),
-        password: Joi.string().required()
+      username: Joi.string().required(),
+      password: Joi.string().required(),
     });
     validateRequest(req, next, schema);
-}
-
-function authenticate(req, res, next) {
-    userService.authenticate(req.body)
-        .then(user => res.json(user))
-        .catch(next);
-}
-
+  }
+  
+  function authenticate(req, res, next) {
+    userService
+      .authenticate(req.body)
+      .then((user) => {
+        //send the cookie to the browser
+        res.cookie("token", user.token);
+        res.json(user);
+      })
+      .catch(next);
+  }
+  
+  function logout(req, res, next) {
+    try {
+      res.cookie("token", null, {
+        expires: new Date(Date.now()),
+        httpOnly: true,
+      });
+  
+      res.status(200).json({ message: "Logout Success" });
+    } catch (e) {
+      next();
+    }
+  }
 function getAll(req, res, next) {
     userService.getAll()
         .then(users => res.json(users))
